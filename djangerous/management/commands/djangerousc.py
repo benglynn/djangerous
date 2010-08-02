@@ -3,6 +3,8 @@ from xml.etree.ElementTree import ElementTree
 from xml.etree.ElementTree import tostring
 from djangerous.models import Post
 import urllib
+import re
+from datetime import datetime
 
 class Command(NoArgsCommand):
     
@@ -24,8 +26,16 @@ class Command(NoArgsCommand):
             except Post.DoesNotExist:
                 print 'Creating post %s' % id
                 post.id = id
-            print title, date
-            
+            print 
+            print title
+            # Sat, 31 Jul 2010 02:14:26 -0700
+            #http://docs.python.org/library/datetime.html
+            # Strip superfluous day and UTC offset from date (not supported in
+            # strptime) todo - check format aginst regex before parsing?
+            strip = re.sub(u'^[A-Za-z]{3},\s(.*)\s-?\d{4}$', '\g<1>', date)
+            dt = datetime.strptime(strip, '%d %b %Y %H:%M:%S')
+            print dt
+            # todo - feed in UTC offset
 # Example post xml
 """
 <post>
