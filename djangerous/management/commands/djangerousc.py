@@ -29,6 +29,9 @@ class Command(NoArgsCommand):
             print 
             print title
             # Sat, 31 Jul 2010 02:14:26 -0700
+            DATE_REGEXP = re.compile(
+                u'^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} -?\d{4}$')
+            print re.match(DATE_REGEXP, date)
             #http://docs.python.org/library/datetime.html
             # Strip superfluous day and UTC offset from date (not supported in
             # strptime) todo - check format aginst regex before parsing?
