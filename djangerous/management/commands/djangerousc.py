@@ -4,7 +4,26 @@ from xml.etree.ElementTree import tostring
 from djangerous.models import Post
 import urllib
 import re
-from datetime import datetime
+from datetime import tzinfo, timedelta, datetime
+
+
+DATE_REGEXP = re.compile(
+    u'^[A-Za-z]{3}, (\d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2}) (-?\d{4})$')
+TIMEZONE_REGEXP = u'(-?\d{2})(\d{2})'
+    
+class TZ(tzinfo):
+    def __init__(self, z):
+        zm = re.match(TIMEZONE_REGEXP, z)
+        if zm:
+            self.hours = int(zm.group(1))
+            self.minutes = int(zm.group(2))
+    def utcoffset(self, dt):
+        if hasattr(self, 'hours'):
+            return timedelta(hours=self.hours, minutes=self.minutes)
+        else: 
+            return timedelta(0)
+    def dst(self): return timedelta(0)
+
 
 class Command(NoArgsCommand):
     
@@ -29,16 +48,14 @@ class Command(NoArgsCommand):
             print 
             print title
             # Sat, 31 Jul 2010 02:14:26 -0700
-            DATE_REGEXP = re.compile(
-                u'^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} -?\d{4}$')
-            print re.match(DATE_REGEXP, date)
-            #http://docs.python.org/library/datetime.html
-            # Strip superfluous day and UTC offset from date (not supported in
-            # strptime) todo - check format aginst regex before parsing?
-            strip = re.sub(u'^[A-Za-z]{3},\s(.*)\s-?\d{4}$', '\g<1>', date)
-            dt = datetime.strptime(strip, '%d %b %Y %H:%M:%S')
-            print dt
-            # todo - feed in UTC offset
+            datem = re.match(DATE_REGEXP, date)
+            if datem:
+                dt = datetime.strptime(datem.group(1), '%d %b %Y %H:%M:%S')
+                print dt
+                print dt.replace(tzinfo=TZ(datem.group(2)))
+                
+                
+                
 # Example post xml
 """
 <post>
