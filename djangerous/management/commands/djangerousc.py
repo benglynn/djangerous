@@ -6,24 +6,38 @@ import urllib
 import re
 from datetime import tzinfo, timedelta, datetime
 
-
-DATE_REGEXP = re.compile(
-    u'^[A-Za-z]{3}, (\d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2}) (-?\d{4})$')
-TIMEZONE_REGEXP = u'(-?\d{2})(\d{2})'
+TIMEZON_REGEXP = u''
+DATE_REGEXP = re.compile(r"""
+    # Sat, 31 Jul 2010 02:14:26 -0700
+    ^[A-Za-z]{3},\s
+    (?P<datetime>\d{2}\s[A-Za-z]{3}\s\d{4}\s\d{2}:\d{2}:\d{2}) 
+    \s
+    (?P<tzsign>-?)
+    (?P<tzhours>\d{2})
+    (?P<tzminutes>\d{2})$
+    """, re.VERBOSE)
     
-class TZ(tzinfo):
-    def __init__(self, z):
-        zm = re.match(TIMEZONE_REGEXP, z)
-        if zm:
-            self.hours = int(zm.group(1))
-            self.minutes = int(zm.group(2))
+class Timezone(tzinfo):
+    """
+    Concrete implementation of abstract tzinfo. May be instantiated with a 
+    match for DATE_REGEXP. If instantiated with nothing represents no shift, 
+    which is UTC
+    """
+    def __init__(self, datem=None):
+        if datem:
+            self.hours = int('%s%s' % 
+                (datem.group('tzsign'), datem.group('tzhours')))
+            self.minutes = int('%s%s' % 
+                (datem.group('tzsign'), datem.group('tzminutes')))
     def utcoffset(self, dt):
         if hasattr(self, 'hours'):
             return timedelta(hours=self.hours, minutes=self.minutes)
         else: 
-            return timedelta(0)
-    def dst(self):
+            return timedelta(hours=0)
+    def dst(self, dt):
         return timedelta(0)
+        
+UTC = Timezone()
 
 
 def expandEntities(st):
@@ -40,6 +54,19 @@ def tidybody(st):
     st = re.sub(u'^\s*|\s*$', '', st)
     return st
 
+"""
+Todo
+====
+
+- Account to settings
+
+Unit tests
+----------
+- Changes in XML schema
+- Date format change on new posts and old
+- Unable to connect/timeout
+"""
+
 class Command(NoArgsCommand):
     
     def handle_noargs(self, **options):
@@ -55,8 +82,7 @@ class Command(NoArgsCommand):
             body = tidybody(postel.find('body').text)
             xml = tostring(postel)
             title = postel.find('title').text
-            # Date defaults to now
-            date = datetime.now()
+            date = None
             datest = postel.find('date').text
             datem = re.match(DATE_REGEXP, datest)
             if datem:
@@ -64,7 +90,9 @@ class Command(NoArgsCommand):
                 date = datetime.strptime(datem.group(1), 
                     '%d %b %Y %H:%M:%S')
                 # Add timezone ('z' not supported in strptime)
-                date.replace(tzinfo=TZ(datem.group(2)))
+                date = date.replace(tzinfo=Timezone(datem))
+                # Convert to UTC
+                date = date.astimezone(UTC)
             
             try:
                 post = Post.objects.get(id=id)
@@ -73,9 +101,11 @@ class Command(NoArgsCommand):
                 print 'Creating post %s' % id
                 post = Post()
                 post.id = id
+                post.date = datetime.now()
                 
             post.title = title
-            post.date = date
+            if date: 
+                post.date = date
             post.body = body
             post.xml = xml
             post.save()
