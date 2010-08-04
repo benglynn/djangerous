@@ -22,8 +22,23 @@ class TZ(tzinfo):
             return timedelta(hours=self.hours, minutes=self.minutes)
         else: 
             return timedelta(0)
-    def dst(self): return timedelta(0)
+    def dst(self):
+        return timedelta(0)
 
+
+def expandEntities(st):
+    st = re.sub(u'&lt;', '<', st)
+    st = re.sub(u'&gt;', '>', st)
+    st = re.sub(u'&quot;', '"', st)
+    st = re.sub(u'&apos;', "'", st)
+    st = re.sub(u'&lt;', '<', st)
+    st = re.sub(u'&amp;', '&', st)
+    return st
+    
+def tidybody(st):
+    st = expandEntities(st)
+    st = re.sub(u'^\s*|\s*$', '', st)
+    return st
 
 class Command(NoArgsCommand):
     
@@ -33,26 +48,37 @@ class Command(NoArgsCommand):
         response = urllib.urlopen(xmlurl)
         tree = ElementTree()
         tree.parse(response)
-        for post in tree.findall('post'):
+        for postel in tree.findall('post'):
             
-            id = post.find('id').text
-            title = post.find('title').text
-            date = post.find('date').text
+            id = postel.find('id').text
+            link = postel.find('link').text
+            body = tidybody(postel.find('body').text)
+            xml = tostring(postel)
+            title = postel.find('title').text
+            # Date defaults to now
+            date = datetime.now()
+            datest = postel.find('date').text
+            datem = re.match(DATE_REGEXP, datest)
+            if datem:
+                # If the date in the response correct format, create datetime
+                date = datetime.strptime(datem.group(1), 
+                    '%d %b %Y %H:%M:%S')
+                # Add timezone ('z' not supported in strptime)
+                date.replace(tzinfo=TZ(datem.group(2)))
             
             try:
                 post = Post.objects.get(id=id)
                 print 'Updating post %s' % id
             except Post.DoesNotExist:
                 print 'Creating post %s' % id
+                post = Post()
                 post.id = id
-            print 
-            print title
-            # Sat, 31 Jul 2010 02:14:26 -0700
-            datem = re.match(DATE_REGEXP, date)
-            if datem:
-                dt = datetime.strptime(datem.group(1), '%d %b %Y %H:%M:%S')
-                print dt
-                print dt.replace(tzinfo=TZ(datem.group(2)))
+                
+            post.title = title
+            post.date = date
+            post.body = body
+            post.xml = xml
+            post.save()
                 
                 
                 
