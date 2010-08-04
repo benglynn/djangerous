@@ -9,3 +9,6 @@ class Post(models.Model):
     link = models.URLField(verify_exists=False)
     body = models.TextField(null=True, blank=True)
     xml = models.XMLField()
+            
+    class Meta(object):
+        ordering = ['-date',]

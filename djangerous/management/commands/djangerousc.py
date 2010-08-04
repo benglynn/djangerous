@@ -6,7 +6,6 @@ import urllib
 import re
 from datetime import tzinfo, timedelta, datetime
 
-TIMEZON_REGEXP = u''
 DATE_REGEXP = re.compile(r"""
     # Sat, 31 Jul 2010 02:14:26 -0700
     ^[A-Za-z]{3},\s
