@@ -105,6 +105,7 @@ class Command(NoArgsCommand):
                     
                 post.hostname = hostname
                 post.title = title
+                post.link = link
                 if date: 
                     post.date = date
                 post.body = body
