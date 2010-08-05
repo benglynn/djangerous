@@ -1,4 +1,5 @@
 from django.core.management.base import NoArgsCommand
+from django.conf import settings
 from xml.etree.ElementTree import ElementTree
 from xml.etree.ElementTree import tostring
 from djangerous.models import Post
@@ -57,8 +58,6 @@ def tidybody(st):
 Todo
 ====
 
-- Account to settings
-
 Unit tests
 ----------
 - Changes in XML schema
@@ -70,44 +69,47 @@ class Command(NoArgsCommand):
     
     def handle_noargs(self, **options):
         
-        xmlurl = 'http://posterous.com/api/readposts?hostname=benglynn'
-        response = urllib.urlopen(xmlurl)
-        tree = ElementTree()
-        tree.parse(response)
-        for postel in tree.findall('post'):
+        for account in settings.DJANGEROUS_ACCOUNTS:
+            hostname = account['hostname']
+            url = 'http://posterous.com/api/readposts?hostname=%s' % hostname
+            response = urllib.urlopen(url)
+            tree = ElementTree()
+            tree.parse(response)
+            for postel in tree.findall('post'):
             
-            id = postel.find('id').text
-            link = postel.find('link').text
-            body = tidybody(postel.find('body').text)
-            xml = tostring(postel)
-            title = postel.find('title').text
-            date = None
-            datest = postel.find('date').text
-            datem = re.match(DATE_REGEXP, datest)
-            if datem:
-                # If the date in the response correct format, create datetime
-                date = datetime.strptime(datem.group(1), 
-                    '%d %b %Y %H:%M:%S')
-                # Add timezone ('z' not supported in strptime)
-                date = date.replace(tzinfo=Timezone(datem))
-                # Convert to UTC
-                date = date.astimezone(UTC)
+                id = postel.find('id').text
+                link = postel.find('link').text
+                body = tidybody(postel.find('body').text)
+                xml = tostring(postel)
+                title = postel.find('title').text
+                date = None
+                datest = postel.find('date').text
+                datem = re.match(DATE_REGEXP, datest)
+                if datem:
+                    # If the date in the response correct format, create datetime
+                    date = datetime.strptime(datem.group(1), 
+                        '%d %b %Y %H:%M:%S')
+                    # Add timezone ('z' not supported in strptime)
+                    date = date.replace(tzinfo=Timezone(datem))
+                    # Convert to UTC
+                    date = date.astimezone(UTC)
             
-            try:
-                post = Post.objects.get(id=id)
-                print 'Updating post %s' % id
-            except Post.DoesNotExist:
-                print 'Creating post %s' % id
-                post = Post()
-                post.id = id
-                post.date = datetime.now()
-                
-            post.title = title
-            if date: 
-                post.date = date
-            post.body = body
-            post.xml = xml
-            post.save()
+                try:
+                    post = Post.objects.get(id=id)
+                    print 'Updating post %s' % id
+                except Post.DoesNotExist:
+                    print 'Creating post %s' % id
+                    post = Post()
+                    post.id = id
+                    post.date = datetime.now()
+                    
+                post.hostname = hostname
+                post.title = title
+                if date: 
+                    post.date = date
+                post.body = body
+                post.xml = xml
+                post.save()
                 
                 
                 
