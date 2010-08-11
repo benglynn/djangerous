@@ -40,19 +40,6 @@ class Timezone(tzinfo):
 UTC = Timezone()
 
 
-def expandEntities(st):
-    st = re.sub(u'&lt;', '<', st)
-    st = re.sub(u'&gt;', '>', st)
-    st = re.sub(u'&quot;', '"', st)
-    st = re.sub(u'&apos;', "'", st)
-    st = re.sub(u'&lt;', '<', st)
-    st = re.sub(u'&amp;', '&', st)
-    return st
-    
-def tidybody(st):
-    st = expandEntities(st)
-    st = re.sub(u'^\s*|\s*$', '', st)
-    return st
 
 """
 Todo
@@ -79,7 +66,7 @@ class Command(NoArgsCommand):
             
                 id = postel.find('id').text
                 link = postel.find('link').text
-                body = tidybody(postel.find('body').text)
+                body = postel.find('body').text
                 xml = tostring(postel)
                 title = postel.find('title').text
                 date = None
