@@ -88,6 +88,7 @@ class Command(NoArgsCommand):
                     print 'Creating post %s' % id
                     post = Post()
                     post.id = id
+                    post.active = True
                     post.date = datetime.now()
                     
                 post.hostname = hostname

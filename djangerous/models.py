@@ -4,6 +4,7 @@ class Post(models.Model):
     """
     Store post details returned by posterous api.
     """
+    active = models.BooleanField()
     hostname = models.CharField(max_length=50)
     title = models.CharField(max_length=180)
     date = models.DateTimeField()
